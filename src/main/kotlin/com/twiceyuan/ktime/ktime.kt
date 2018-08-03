@@ -14,7 +14,7 @@ import java.util.*
 
 class TimeKit : CliktCommand(name = "ktime") {
 
-    private val format by option(help = "时间的格式，默认 yyyy-MM-dd").default("yyyy-MM-dd")
+    private val format by option(help = "date format, default yyyyMMdd").default("yyyyMMdd")
 
     override fun run() {
         context.obj = SimpleDateFormat(format)
@@ -23,37 +23,46 @@ class TimeKit : CliktCommand(name = "ktime") {
 
 class ConvertKit : CliktCommand(name = "convert") {
 
-    private val time by argument(help = "需要转换的时间戳或时间字符串").default("")
+    private val date by argument(help = "date string(eg. 19930302) or timestamp(ms level)").default("")
     private val dateFormatter by requireObject<SimpleDateFormat>()
 
     override fun run() {
-        if (time.isEmpty()) {
+        if (date.isEmpty()) {
             return
         }
 
-        val isTimestamp = !time.any { it !in '0'..'9' }
+        // smart detect date is string or timestamp
+        val isTimestamp = !date.any { it !in '0'..'9' }
         if (isTimestamp) {
-            TermUi.echo(dateFormatter.format(Date(time.toLong())))
+            TermUi.echo(dateFormatter.format(Date(date.toLong())))
         } else {
-            TermUi.echo(dateFormatter.parse(time).time)
+            TermUi.echo(dateFormatter.parse(date).time)
         }
     }
 }
 
 class DurationKit : CliktCommand(name = "duration") {
 
-    private val times by argument(help = "默认格式 yyyy-MM-dd").multiple()
+    private val times by argument(help = "Dates to calculate duration, default format: yyyyMMdd").multiple()
     private val outputUnit by option().default("day")
     private val dateFormatter by requireObject<SimpleDateFormat>()
 
     override fun run() {
         if (times.size != 2) {
-            TermUi.echo("计算时间间隔必须输入两个时间点", err = true)
+            TermUi.echo("Duration calculate needs two arguments", err = true)
             return
         }
 
-        val start = dateFormatter.parse(times[0]).time
-        val end = dateFormatter.parse(times[1]).time
+        val start: Long
+        val end: Long
+
+        try {
+            start = dateFormatter.parse(times[0]).time
+            end = dateFormatter.parse(times[1]).time
+        } catch (e: java.text.ParseException) {
+            TermUi.echo("Please input correct date format: ${dateFormatter.toPattern()}")
+            return
+        }
 
         val unitMillis = when (outputUnit) {
             "day" -> 1000 * 3600 * 24
@@ -63,17 +72,13 @@ class DurationKit : CliktCommand(name = "duration") {
         }
 
         if (unitMillis == null) {
-            TermUi.echo("请输入正确的单位(day, min, sec)")
+            TermUi.echo("Please input correct date unit (eg. day, min, sec)")
         } else {
             TermUi.echo("${Math.abs(end - start) / unitMillis} $outputUnit")
         }
     }
 }
 
-/**
- * > ktime --duration 2018-01-20 2018-01-21 --unit day
- * < 2018-01-20 到 2018-01-21 相隔 1 天
- */
 fun main(args: Array<String>) = TimeKit()
         .subcommands(ConvertKit(), DurationKit())
         .main(args)
