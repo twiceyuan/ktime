@@ -11,13 +11,14 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 class TimeKit : CliktCommand(name = "ktime") {
 
     private val format by option(help = "date format, default yyyyMMdd").default("yyyyMMdd")
 
     override fun run() {
-        context.obj = SimpleDateFormat(format)
+        currentContext.obj = SimpleDateFormat(format)
     }
 }
 
@@ -74,11 +75,11 @@ class DurationKit : CliktCommand(name = "duration") {
         if (unitMillis == null) {
             TermUi.echo("Please input correct date unit (eg. day, min, sec)")
         } else {
-            TermUi.echo("${Math.abs(end - start) / unitMillis} $outputUnit")
+            TermUi.echo("${abs(end - start) / unitMillis} $outputUnit")
         }
     }
 }
 
 fun main(args: Array<String>) = TimeKit()
-        .subcommands(ConvertKit(), DurationKit())
-        .main(args)
+    .subcommands(ConvertKit(), DurationKit())
+    .main(args)
